@@ -1,0 +1,338 @@
+
+let leftSound;
+let rightSound;
+let pointSound;
+let winSound;
+let hitSound;
+
+function preload(){
+  soundFormats('wav');
+	 leftSound = loadSound('happyBeep');
+	rightSound = loadSound('softBoop');
+	
+	winSound = loadSound('greatBeep');
+	hitSound = loadSound('boop');
+	
+	//pointSound = loadSound('sadBeep.wav');
+	
+}
+
+
+let serial;
+let latestData = "waiting for data";
+
+
+function serverConnected() {
+ print("Connected to Server");
+}
+
+function gotList(thelist) {
+ print("List of Serial Ports:");
+
+ for (let i = 0; i < thelist.length; i++) {
+  print(i + " " + thelist[i]);
+ }
+}
+
+function gotOpen() {
+ print("Serial Port is Open");
+}
+
+function gotClose(){
+ print("Serial Port is Closed");
+ latestData = "Serial Port is Closed";
+}
+
+function gotError(theerror) {
+ print(theerror);
+}
+
+
+
+
+
+function gotData() {
+ let currentString = serial.readLine();
+  
+ if (!currentString) return;
+
+ latestData = currentString;
+	//direction,rotationVal
+	//parse data
+  let Array = split(currentString, ",");
+	//changeL = (abs(rotationValL - abs(int(Array[1]))))*eSpeed;
+  //rotationValL = abs(int(Array[1]));
+  //directionL = Array[0];
+	// newL = int(Array[0]);
+	// changeL = (newL - lastL) * eSpeed;
+	// lastL = newL;
+	
+	// newR = int(Array[1]);
+	// changeR = (newR - lastR) * eSpeed;
+	// lastR = newR;
+	
+	//newL = (int(Array[0]));
+	changeL = ((int(Array[0])) - lastL);
+	lastL = (int(Array[0]));
+	
+	//newR = (int(Array[1]));
+	changeR = ((int(Array[1])) - lastR);
+	lastR = (int(Array[1]));	
+	
+	//changeR = (abs(rotationValR - abs(int(Array[3]))))*eSpeed;
+  //rotationValR = abs(int(Array[3]));
+  //directionR = Array[2];
+	
+}
+
+
+var changeL  = 0;
+var changeR  = 0;
+
+var directionL = 0;
+var rotationValL = 0;
+
+var directionR = 0;
+var rotationValR = 0;
+
+var lastR = 0;
+var lastL = 0;
+var newR = 0;
+var newL = 0;
+
+
+
+
+//source: https://youtu.be/iEicBgGocUA creating pong in p5.js parts 1-5
+
+//p5play, p5.serial, p5.sound enabled
+
+//global variables
+var ballX; //position in X axis
+var ballY; //position in Y axis
+var ballWidth = 15; //size of ball
+var ballHeight = 15; //size of ball
+
+var p1X = 10; // 10 away from left edge
+var p1Y = 250; //half of canvas height
+
+var p2X = 890; //10 away from right edge
+var p2Y = 250; //half of canvas height
+
+var paddleWidth = 20;
+var paddleHeight = 100;
+var pSpeed = 4;
+var eSpeed = 6;
+
+var p1Score = 0;
+var p2Score = 0;
+
+var page = 0;
+
+var winText = "";
+
+
+
+function setup() {
+  createCanvas(900, 500);
+  
+  rectMode(CENTER); //origin of ball is in center instead of corner
+  ballX = width/2; //starts ball in the middle
+  ballY = height/2; //starts ball in the middle
+  ballDirectionX = 1;
+  ballDirectionY = 1;
+  ballSpeedX = 3;
+  ballSpeedY = 3;
+	
+	serial = new p5.SerialPort();
+
+ serial.list();
+ serial.open('COM3');
+
+ serial.on('connected', serverConnected);
+
+ serial.on('list', gotList);
+
+ serial.on('data', gotData);
+
+ serial.on('error', gotError);
+
+ serial.on('open', gotOpen);
+
+ serial.on('close', gotClose);
+  
+  
+}//end setup
+
+function draw() {
+	
+  if (page == 0)
+  {welcome();}
+  
+  if(page == 1)
+    {pong();}
+  
+  if(keyIsPressed && page == 0)
+    {
+      page = 1;
+    }
+  
+}//end draw
+
+function welcome(){
+  background(0);
+  textAlign(CENTER);
+  fill(255);
+  textSize(100);
+  text('PONG', width/2, 150);
+	
+	//text(latestData, width/2, 250);
+  
+  textSize(50);
+  text(winText, width/2, 270);
+  
+  textSize(50);
+  text('Press any key to start', width/2, 400);
+} //end welcome
+
+
+function pong() {
+  background(0); //backgroud to black
+  noFill();
+  stroke(255);
+	strokeWeight(1);
+  rect(width/2, height/2, width, height);
+	strokeWeight(4);
+  line(450, 0, 450, height); //centerline
+  
+  fill(255); //fill objects to white
+  noStroke(); //remove border on objects
+  
+  textAlign(CENTER);
+  
+  //ball object
+  rect(ballX, ballY, ballWidth, ballHeight); //make a rectangle with position x,y and size w,h
+  
+  //paddle objects
+  rect(p1X, p1Y, paddleWidth, paddleHeight);
+  rect(p2X, p2Y, paddleWidth, paddleHeight);
+  
+  
+  //Physics
+  ballX = ballX + (ballDirectionX * ballSpeedX); //move horizontally
+  ballY = ballY + (ballDirectionY * ballSpeedY ); //move vertically
+  
+  //collisions
+  if(ballY >= height || ballY <= 0)
+    {
+			hitSound.play();
+      ballDirectionY = ballDirectionY * (-1);
+    }
+  
+  
+  
+if(ballX >= p2X - 10 && ballY >= p2Y-50 && ballY <= p2Y+50)
+  {
+		rightSound.play();
+    //ballDirectionY = ballDirectionY * (-1);
+    ballDirectionX = ballDirectionX * (-1);
+  }
+
+if(ballX <= p1X + 10 && ballY >= p1Y-50 && ballY <= p1Y+50)
+{
+	leftSound.play();
+  //ballDirectionY = ballDirectionY * (-1);
+  ballDirectionX = ballDirectionX * (-1);
+}
+  
+  if(ballX >= width)
+    {
+			winSound.play();
+      p1Score = p1Score+1;
+      ballX = width/2; 
+      ballY = height/2;
+      
+    }
+  
+    if(ballX <= 0)
+    {
+			winSound.play();
+      p2Score = p2Score+1;
+      ballX = width/2; 
+      ballY = height/2;
+      
+    }
+  
+  //scoring
+  textSize(20);
+  text(p1Score, 420, 30);
+  text(p2Score, 480, 30);
+  
+  
+  if(p1Score == 10 )
+    {
+      winText = "PLAYER 1 WINS!"
+      page = 0;
+      p1Score = 0;
+      ballX = width/2; //starts ball in the middle
+			ballY = height/2; //starts ball in the middle
+			ballDirectionX = 1;
+			ballDirectionY = 1;
+			ballSpeedX = 4;
+			ballSpeedY = 4;
+			p1X = 10; // 10 away from left edge
+			p1Y = 250; //half of canvas height
+
+			p2X = 890; //10 away from right edge
+			p2Y = 250; //half of canvas height
+    }
+    if(p2Score == 10 )
+    {
+      winText = "PLAYER 2 WINS!"
+      page = 0;
+      p2Score = 0;
+      ballX = width/2; //starts ball in the middle
+			ballY = height/2; //starts ball in the middle
+			ballDirectionX = 1;
+			ballDirectionY = 1;
+			ballSpeedX = 4;
+			ballSpeedY = 4;
+			p1X = 10; // 10 away from left edge
+			p1Y = 250; //half of canvas height
+
+			p2X = 890; //10 away from right edge
+			p2Y = 250; //half of canvas height
+    }
+	
+	if (lastR * eSpeed >= 0 && lastR * eSpeed <= height)
+	{	p2Y = lastR * eSpeed;}
+	
+		if (lastL * eSpeed >= 0 && lastL * eSpeed <= height)
+	{	p1Y = lastL * eSpeed;}
+	
+}//end pong
+
+
+function encoderR()
+{
+	//going up
+	//if(p2Y - 50 >= 0 && directionR == 'CW') //don't let the paddle go off screen
+	if(p2Y - 50 >= 0 && changeR >= 0) //positive
+	{
+		//p2Y = p2Y - changeR;
+		p2Y = p2Y + changeR;
+	}
+	//going down
+	//if(p2Y + 50 <= height && directionR == 'CCW') //don't let the paddle go off screen
+	if(p2Y + 50 <= height && changeR <= 0)
+	{
+		p2Y = p2Y + changeR;
+	}
+	
+	//changeR = 0;
+}
+
+function encoderL()
+{
+	p1Y = p1Y + changeL;
+}
