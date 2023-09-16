@@ -1,0 +1,96 @@
+// Rotary Encoder Inputs
+#define CLK 2
+#define DT 4
+//#define SW 4
+
+#define CLK2 3
+#define DT2 5
+//#define SW2 7
+
+int counter = 0;
+int currentStateCLK;
+int lastStateCLK;
+String currentDir ="";
+unsigned long lastButtonPress = 0;
+
+int counter2 = 0;
+int currentStateCLK2;
+int lastStateCLK2;
+String currentDir2 ="";
+unsigned long lastButtonPress2 = 0;
+
+
+int change = 0;
+int change2 = 0;
+
+void setup() {
+        
+	// Set encoder pins as inputs
+	pinMode(CLK,INPUT);
+	pinMode(DT,INPUT);
+	//pinMode(SW, INPUT_PULLUP);
+
+  pinMode(CLK2,INPUT);
+	pinMode(DT2,INPUT);
+	//pinMode(SW2, INPUT_PULLUP);
+
+	// Setup Serial Monitor
+	Serial.begin(9600);
+
+	// Read the initial state of CLK
+	lastStateCLK = digitalRead(CLK);
+  lastStateCLK2 = digitalRead(CLK2);
+}
+
+void loop() {
+        
+	// Read the current state of CLK
+	currentStateCLK = digitalRead(CLK);
+  currentStateCLK2 = digitalRead(CLK2);
+
+
+
+	// If last and current state of CLK are different, then pulse occurred
+	// React to only 1 state change to avoid double count
+	if (currentStateCLK != lastStateCLK  && currentStateCLK == 1){
+
+		// If the DT state is different than the CLK state then
+		// the encoder is rotating CCW so decrement
+		if (digitalRead(DT) != currentStateCLK) {
+			counter --;
+			currentDir ="CCW";
+		} else {
+			// Encoder is rotating CW so increment
+			counter ++;
+			currentDir ="CW";
+		}
+	}
+
+if (currentStateCLK2 != lastStateCLK2  && currentStateCLK2 == 1){
+
+		// If the DT state is different than the CLK state then
+		// the encoder is rotating CCW so decrement
+		if (digitalRead(DT2) != currentStateCLK2) {
+			counter2 --;
+			currentDir2 ="CCW";
+		} else {
+			// Encoder is rotating CW so increment
+			counter2 ++;
+			currentDir2 ="CW";
+		}
+	}
+  
+
+		Serial.print(counter);
+Serial.print(",");
+
+		Serial.println(counter2);
+
+	// Remember last CLK state
+	lastStateCLK = currentStateCLK;
+  lastStateCLK2 = currentStateCLK2;
+
+
+	// Put in a slight delay to help debounce the reading
+	//delay(5);
+}
