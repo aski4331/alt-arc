@@ -1,0 +1,376 @@
+
+
+//sounds
+let leftSound;
+let rightSound;
+let pointSound;
+let winSound;
+let hitSound;
+
+function preload(){
+  soundFormats('wav');
+	 leftSound = loadSound('softBoop');
+	rightSound = loadSound('8bit2');
+	
+	winSound = loadSound('greatBeep');
+	hitSound = loadSound('bounce');
+	
+	
+}
+
+//serial
+let serial;
+let latestData = "waiting for data";
+
+function serverConnected() {
+ print("Connected to Server");
+}
+
+function gotList(thelist) {
+ print("List of Serial Ports:");
+
+ for (let i = 0; i < thelist.length; i++) {
+  print(i + " " + thelist[i]);
+ }
+}
+
+function gotOpen() {
+ print("Serial Port is Open");
+}
+
+function gotClose(){
+ print("Serial Port is Closed");
+ latestData = "Serial Port is Closed";
+}
+
+function gotError(theerror) {
+ print(theerror);
+}
+
+
+function gotData() {
+ let currentString = serial.readLine();
+  
+ if (!currentString) return;
+
+ latestData = currentString;
+	//parse data
+  let Array = split(currentString, ",");
+	lastL = (int(Array[0]));
+	lastR = (int(Array[1]));	
+	
+}//end gotData
+
+//encoder data variables
+var lastR = 0;
+var lastL = 0;
+
+//math
+
+let xDiff;
+let yDiff;
+
+let xNorm;
+let yNorm;
+
+let distance;
+
+//paddle position variables
+
+let angle1 = 0;
+let speed1 = 3;
+let angle2 = 0;
+let speed2 = 3;
+
+//ball collision trackers
+var hit1 = false;
+var hit2 = false;
+var exit = true;
+
+let color = "white";
+
+//ball variables
+var ballX; //position in X axis
+var ballY; //position in Y axis
+var ballR;//ball radius
+
+//paddle positions
+let x1;
+let x2;
+let y1;
+let y2;
+let paddleR;
+
+//empty circles
+let radius;
+
+let hitRadius;
+let hitCircle;
+
+//game trackers and info
+var p1Score = 0;
+var p2Score = 0;
+
+var page = 0;
+
+var winText = "";
+
+//setup
+function setup() {
+  createCanvas(520, 520);
+	
+	//empty circle variable values
+  radius = (width /2) - 50;
+	hitRadius = (radius* 2) - 2;
+
+	//paddle variable values
+	paddleR = 40;
+	
+	//ball variable values
+	ballR = 20;
+  ballX = width/2; //starts ball in the middle
+  ballY = height/2; //starts ball in the middle
+  ballDirectionX = 1;
+  ballDirectionY = 0;
+  ballSpeedX = 3;
+  ballSpeedY = 2;
+	
+	//paddle positions
+x1 = (cos(angle1) * radius) + width/2;
+y1 = (sin(angle1) * radius) + height/2;
+
+x2 = (cos(angle2) * radius) + width/2;
+y2 = (sin(angle2) * radius) + height/2;
+	
+	//serial
+ serial = new p5.SerialPort();
+ serial.list();
+ serial.open('COM3');
+ serial.on('connected', serverConnected);
+ serial.on('list', gotList);
+ serial.on('data', gotData);
+ serial.on('error', gotError);
+ serial.on('open', gotOpen);
+ serial.on('close', gotClose);
+	
+}//end setup
+
+//draw
+function draw() {
+	
+  if (page == 0)
+  {welcome();}
+  
+  if(page == 1)
+    {pong();}
+  
+  if(keyIsPressed && page == 0)
+    {
+      page = 1;
+    }
+  
+}//end draw
+
+
+function welcome(){
+  background(0);
+  textAlign(CENTER);
+  fill(255);
+  textSize(50);
+  text('PONG REVOLUTION', width/2, 150);
+	
+	//text(latestData, width/2, 250);
+  
+  textSize(45);
+  text(winText, width/2, 270);
+  
+  textSize(45);
+  text('Press any key to start', width/2, 400);
+	
+} //end welcome
+
+
+function pong(){
+  background(130);
+  textAlign(CENTER);
+	
+	fill(0);
+	
+	
+	//scoring
+	
+  textSize(40);
+	fill("red");
+  text(p1Score, 35, 40);
+	fill("blue");
+  text(p2Score, 485, 40);
+	
+  // Empty Circle
+  noFill();
+		stroke(10);
+  circle(width/2, height/2, radius * 2);
+	
+  circle(width/2, height/2, hitRadius);
+	stroke(0);
+	
+	  //paddles
+  fill("red");
+
+  circle(x1, y1, paddleR);
+	
+	fill("blue");
+	circle(x2, y2, paddleR);
+	
+	fill(color);
+	 //ball object
+  circle(ballX, ballY, ballR);
+
+  //Physics
+  ballX = ballX + (ballDirectionX * ballSpeedX); //move horizontally
+  ballY = ballY + (ballDirectionY * ballSpeedY ); //move vertically
+	
+	//collisions
+	exit = collideCircleCircle(width/2, height/2, radius*2, ballX, ballY, ballR);
+	hitCircle = collideCircleCircle(width/2, height/2, hitRadius, ballX, ballY, ballR);
+	hit1 = collideCircleCircle(x1, y1, paddleR, ballX, ballY, ballR);
+	hit2 = collideCircleCircle(x2, y2, paddleR, ballX, ballY, ballR);
+	
+			
+		if(ballY >= height || ballY <= 0)
+    {
+			hitSound.play();
+      ballDirectionY = ballDirectionY * (-1);
+    }
+
+		if(ballX >= width || ballX <= 0)
+		{
+			hitSound.play();
+      ballDirectionX = ballDirectionX * (-1);
+    }
+
+	//change angle of paddles depending on encoder rotation
+	angle1 = lastL*speed1;
+	angle2 = lastR*speed2;
+	
+	//change positions of paddles depending on angles
+	
+	x1 = (cos(angle1) * radius) + width/2;
+	y1 = (sin(angle1) * radius) + height/2;
+
+	x2 = (cos(angle2) * radius) + width/2;
+	y2 = (sin(angle2) * radius) + height/2;
+	
+	//ball exits the empty circle
+	if (!exit)
+	{								
+		if(color == "red")
+		{
+				winSound.play();
+      	p1Score = p1Score+1;
+		}
+		if(color == "blue")
+		{
+				winSound.play();
+      	p2Score = p2Score+1;
+		}
+		
+		color = "black";
+	}
+	
+	if(exit && color == "black")
+	{
+		color = "white";
+	}
+	
+	//https://spicyyoghurt.com/tutorials/html5-javascript-game-development/collision-detection-physics
+	//source for math
+	
+	//ball hits the red paddle
+		if (hit1) 
+	{
+		//(ballDirectionX, ballDirectionY)
+		//vCollision = {x: obj2.x - obj1.x, y: obj2.y - obj1.y};
+		xDiff = ballX - x1;
+		yDiff = ballY - y1;
+		//(xDiff, yDiff)
+		
+		//obj2 = ballX, bally
+		//obj1 = x1, y1
+		
+		//distance = Math.sqrt((obj2.x-obj1.x)*(obj2.x-obj1.x) + (obj2.y-obj1.y)*(obj2.y-obj1.y));
+		distance = sqrt((ballX-x1)*(ballX-x1) + (ballY-y1)*(ballY-y1));
+		
+		//vCollisionNorm = {x: vCollision.x / distance, y: vCollision.y / distance};
+		xNorm = xDiff/distance;
+		yNorm = yDiff/distance;
+		
+		//normalized direction
+		ballDirectionY = yNorm;  
+		ballDirectionX = xNorm; 
+		
+
+		if (color != "black")
+		{color = "red";}
+		leftSound.play();
+  	
+	}
+	
+	//ball hits the blue paddle
+			if (hit2) 
+	{
+		//(ballDirectionX, ballDirectionY)
+		xDiff = ballX - x2;
+		yDiff = ballY - y2;
+		//(xDiff, yDiff)
+		
+		//obj2 = ballX, bally
+		//obj1 = x1, y1
+		
+		distance = sqrt((ballX-x2)*(ballX-x2) + (ballY-y2)*(ballY-y2));
+		
+		xNorm = xDiff/distance;
+		yNorm = yDiff/distance;
+		
+		
+		ballDirectionY = yNorm;  
+		ballDirectionX = xNorm; 
+		
+		if (color != "black")
+		{color = "blue";}
+		rightSound.play();
+		
+  	
+	}
+	
+	//game restart for win
+	
+	if(p1Score == 10 )
+    {
+      winText = "RED PLAYER WINS!"
+      page = 0;
+      p1Score = 0;
+			p2Score = 0;
+      ballX = width/2; //starts ball in the middle
+			ballY = height/2; //starts ball in the middle
+			ballDirectionX = 1;
+			ballDirectionY = 1;
+			color = "white";
+			
+		}
+	
+		if(p2Score == 10 )
+    {
+      winText = "BLUE PLAYER WINS!"
+      page = 0;
+			p1Score = 0;
+      p2Score = 0;
+      ballX = width/2; //starts ball in the middle
+			ballY = height/2; //starts ball in the middle
+			ballDirectionX = 1;
+			ballDirectionY = 1;
+			color = "white";
+			
+		}
+	
+	
+}//end PONG
